@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TestCase } from "@/types";
@@ -42,13 +41,34 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { FileDown, RotateCcw, BarChart2, PieChart as PieChartIcon } from "lucide-react";
+import { 
+  FileDown, 
+  RotateCcw, 
+  BarChart2, 
+  PieChart as PieChartIcon, 
+  Filter, 
+  Download, 
+  Check, 
+  X, 
+  Clock, 
+  AlertTriangle, 
+  AlertOctagon,
+  Lightbulb 
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function TestCases() {
   const validationId = 1; // This would typically come from route params
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [location, setLocation] = useState<string | null>(null);
   const [chartType, setChartType] = useState<"bar" | "pie">("pie");
   const [exportFormat, setExportFormat] = useState<string>("xlsx");
 
@@ -153,6 +173,98 @@ export default function TestCases() {
     generateTestCasesMutation.mutate();
   };
 
+  // Render functions for tabs
+  const renderTestCaseItem = (testCase: TestCase) => (
+    <AccordionItem key={testCase.id} value={testCase.id.toString()}>
+      <AccordionTrigger className="px-6 py-4 hover:no-underline">
+        <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4 text-left">
+          <div className="flex items-center gap-3">
+            {testCase.status === 'Passed' ? (
+              <Check className="h-5 w-5 text-green-600" />
+            ) : testCase.status === 'Failed' ? (
+              <X className="h-5 w-5 text-red-600" />
+            ) : (
+              <Clock className="h-5 w-5 text-amber-600" />
+            )}
+            <div>
+              <h3 className="font-medium flex items-center gap-2">
+                <span className="font-mono text-xs text-muted-foreground">{testCase.testCaseId}</span>
+                {testCase.name}
+              </h3>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-8 md:ml-0">
+            <Badge variant="outline" className="rounded-full capitalize">
+              {testCase.type}
+            </Badge>
+            <Badge className={
+              testCase.severity === 'High'
+                ? 'bg-red-100 text-red-800 hover:bg-red-100'
+                : testCase.severity === 'Medium'
+                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-100'
+                  : 'bg-green-100 text-green-800 hover:bg-green-100'
+            }>
+              {testCase.severity}
+            </Badge>
+            <Badge className={
+              testCase.status === 'Failed'
+                ? 'bg-red-100 text-red-800 hover:bg-red-100'
+                : testCase.status === 'Passed'
+                  ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+            }>
+              {testCase.status}
+            </Badge>
+          </div>
+        </div>
+      </AccordionTrigger>
+      
+      <AccordionContent className="px-6 pb-4 pt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
+          <div>
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Test Description
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              {testCase.description || "No description available."}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <AlertOctagon className="h-4 w-4 text-blue-600" />
+              Details
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start">
+                <p className="w-28 font-medium">Requirement:</p>
+                <p className="text-muted-foreground">{testCase.requirement || "Not specified"}</p>
+              </div>
+              <div className="flex items-start">
+                <p className="w-28 font-medium">Design Element:</p>
+                <p className="text-muted-foreground">{testCase.designElement || "Not specified"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-amber-600" />
+            Recommendation
+          </h4>
+          <p className="text-sm text-muted-foreground">
+            {testCase.status === 'Failed' 
+              ? `Update the Figma design to ensure ${testCase.name.toLowerCase()} matches the SRS requirements.`
+              : testCase.status === 'In Progress' 
+                ? `Review both SRS and Figma design to ensure ${testCase.name.toLowerCase()} is fully implemented.`
+                : `Test passed. The Figma design correctly implements ${testCase.name.toLowerCase()}.`
+            }
+          </p>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -163,27 +275,6 @@ export default function TestCases() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Select
-            value={exportFormat}
-            onValueChange={(value) => setExportFormat(value)}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Export format" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
-              <SelectItem value="csv">CSV (.csv)</SelectItem>
-              <SelectItem value="pdf">PDF (.pdf)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button 
-            onClick={handleExport}
-            disabled={testCases.length === 0 || exportTestCasesMutation.isPending}
-            className="flex items-center gap-2"
-          >
-            <FileDown className="h-4 w-4" />
-            Export
-          </Button>
           <Button 
             variant={testCases.length > 0 ? "outline" : "default"}
             onClick={handleGenerateTestCases} 
@@ -191,7 +282,7 @@ export default function TestCases() {
             className="flex items-center gap-2"
           >
             <RotateCcw className="h-4 w-4" />
-            {testCases.length > 0 ? "Regenerate" : "Generate Test Cases"}
+            {testCases.length > 0 ? "Regenerate Test Cases" : "Generate Test Cases"}
           </Button>
         </div>
       </div>
@@ -224,6 +315,7 @@ export default function TestCases() {
         </Card>
       ) : (
         <>
+          {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -263,6 +355,7 @@ export default function TestCases() {
             </Card>
           </div>
 
+          {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -411,66 +504,78 @@ export default function TestCases() {
             </Card>
           </div>
 
+          {/* Test Cases List with Tabs */}
           <Card>
             <CardHeader>
-              <CardTitle>All Test Cases</CardTitle>
-              <CardDescription>
-                List of all generated test cases from validation
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Test Case Results</CardTitle>
+                  <CardDescription>
+                    Comparison of SRS requirements and Figma design elements
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={exportFormat}
+                    onValueChange={setExportFormat}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
+                      <SelectItem value="csv">CSV (.csv)</SelectItem>
+                      <SelectItem value="pdf">PDF (.pdf)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={handleExport}
+                    disabled={exportTestCasesMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requirement</TableHead>
-                    <TableHead>Design Element</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {testCases.map((testCase) => (
-                    <TableRow key={testCase.id}>
-                      <TableCell className="font-mono">{testCase.testCaseId}</TableCell>
-                      <TableCell>{testCase.name}</TableCell>
-                      <TableCell>{testCase.type}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                          ${testCase.severity === 'High' 
-                            ? 'bg-red-100 text-red-800' 
-                            : testCase.severity === 'Medium' 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {testCase.severity}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                          ${testCase.status === 'Failed' 
-                            ? 'bg-red-100 text-red-800' 
-                            : testCase.status === 'Passed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {testCase.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {testCase.requirement || 'N/A'}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {testCase.designElement || 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            
+            <CardContent className="px-0 py-0">
+              <Tabs defaultValue="all" className="w-full">
+                <div className="border-b px-6">
+                  <TabsList className="h-12">
+                    <TabsTrigger value="all" className="data-[state=active]:bg-background">All Cases ({testCases.length})</TabsTrigger>
+                    <TabsTrigger value="passed" className="data-[state=active]:bg-background">Passed ({testCases.filter(tc => tc.status === 'Passed').length})</TabsTrigger>
+                    <TabsTrigger value="failed" className="data-[state=active]:bg-background">Failed ({testCases.filter(tc => tc.status === 'Failed').length})</TabsTrigger>
+                    <TabsTrigger value="inprogress" className="data-[state=active]:bg-background">In Progress ({testCases.filter(tc => tc.status === 'In Progress').length})</TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="all" className="space-y-0 p-0">
+                  <Accordion type="multiple" className="w-full">
+                    {testCases.map(renderTestCaseItem)}
+                  </Accordion>
+                </TabsContent>
+                
+                <TabsContent value="passed" className="space-y-0 p-0">
+                  <Accordion type="multiple" className="w-full">
+                    {testCases.filter(tc => tc.status === 'Passed').map(renderTestCaseItem)}
+                  </Accordion>
+                </TabsContent>
+                
+                <TabsContent value="failed" className="space-y-0 p-0">
+                  <Accordion type="multiple" className="w-full">
+                    {testCases.filter(tc => tc.status === 'Failed').map(renderTestCaseItem)}
+                  </Accordion>
+                </TabsContent>
+                
+                <TabsContent value="inprogress" className="space-y-0 p-0">
+                  <Accordion type="multiple" className="w-full">
+                    {testCases.filter(tc => tc.status === 'In Progress').map(renderTestCaseItem)}
+                  </Accordion>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </>
