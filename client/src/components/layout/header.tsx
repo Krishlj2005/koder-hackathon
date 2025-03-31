@@ -7,20 +7,23 @@ const Header = () => {
       <div className="flex items-center space-x-4">
         <h1 className="text-xl font-semibold text-primary">SRS & Figma Validator</h1>
         <div className="hidden md:flex space-x-6 text-sm">
-          <Link href="/">
-            <a className="text-primary font-medium">Dashboard</a>
+          <Link href="/" className="text-primary font-medium">
+            Dashboard
           </Link>
-          <Link href="/projects">
-            <a className="text-neutral-600 hover:text-primary">Projects</a>
+          <Link href="/projects" className="text-neutral-600 hover:text-primary">
+            Projects
           </Link>
-          <Link href="/reports">
-            <a className="text-neutral-600 hover:text-primary">Reports</a>
+          <Link href="/reports" className="text-neutral-600 hover:text-primary">
+            Reports
           </Link>
-          <Link href="/figma-test">
-            <a className="text-neutral-600 hover:text-primary">Figma Test</a>
+          <Link href="/figma-test" className="text-neutral-600 hover:text-primary">
+            Figma Test
           </Link>
-          <Link href="/settings">
-            <a className="text-neutral-600 hover:text-primary">Settings</a>
+          <Link href="/test-cases" className="text-neutral-600 hover:text-primary">
+            Test Cases
+          </Link>
+          <Link href="/settings" className="text-neutral-600 hover:text-primary">
+            Settings
           </Link>
         </div>
       </div>

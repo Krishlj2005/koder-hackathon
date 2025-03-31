@@ -17,11 +17,12 @@ const Sidebar = () => {
         <ul className="space-y-2">
           {projects.map((project) => (
             <li key={project.id} className="text-sm">
-              <Link href={`/projects/${project.id}`}>
-                <a className={`flex items-center p-2 rounded ${project.name === 'Mobile Banking App' ? 'bg-neutral-100' : 'hover:bg-neutral-100'}`}>
-                  <FileText className="text-primary h-4 w-4 mr-3" />
-                  <span>{project.name}</span>
-                </a>
+              <Link 
+                href={`/projects/${project.id}`}
+                className={`flex items-center p-2 rounded ${project.name === 'Mobile Banking App' ? 'bg-neutral-100' : 'hover:bg-neutral-100'}`}
+              >
+                <FileText className="text-primary h-4 w-4 mr-3" />
+                <span>{project.name}</span>
               </Link>
             </li>
           ))}
