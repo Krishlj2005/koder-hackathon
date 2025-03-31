@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import { z } from "zod";
+import fetch from 'node-fetch';
 import { insertDocumentSchema, insertFigmaDesignSchema, insertProjectSchema, insertValidationSchema } from "@shared/schema";
 
 // Set up multer for file uploads
@@ -15,6 +16,166 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ============== FIGMA API INTEGRATION ROUTES ==============
+  
+  // Check if Figma token is available
+  app.get('/api/figma/check-token', async (req, res) => {
+    try {
+      const figmaToken = process.env.FIGMA_ACCESS_TOKEN;
+      
+      res.json({
+        hasToken: !!figmaToken,
+        tokenHint: figmaToken ? `${figmaToken.substring(0, 4)}...${figmaToken.substring(figmaToken.length - 4)}` : null
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to check Figma token" 
+      });
+    }
+  });
+  
+  // Connect to Figma API
+  app.get('/api/figma/connect', async (req, res) => {
+    try {
+      // In a real OAuth implementation, this would involve a multi-step process
+      // For this demo, we just check if the access token is available in env vars
+      const figmaToken = process.env.FIGMA_ACCESS_TOKEN;
+      
+      if (!figmaToken) {
+        return res.status(400).json({
+          success: false,
+          message: "No Figma access token found. Please add a FIGMA_ACCESS_TOKEN environment variable."
+        });
+      }
+      
+      // Test the token with a simple request to Figma API
+      const response = await fetch('https://api.figma.com/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${figmaToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Figma access token. Please check your credentials."
+        });
+      }
+      
+      const userData = await response.json();
+      
+      res.json({
+        success: true,
+        message: "Successfully connected to Figma",
+        tokenHint: `${figmaToken.substring(0, 4)}...${figmaToken.substring(figmaToken.length - 4)}`,
+        user: {
+          handle: userData.handle,
+          img_url: userData.img_url
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to connect to Figma API"
+      });
+    }
+  });
+  
+  // Disconnect from Figma API (just a mock endpoint for the demo)
+  app.get('/api/figma/disconnect', async (req, res) => {
+    try {
+      // In a real implementation with OAuth, this would revoke the token
+      // For this demo, we just return success
+      res.json({
+        success: true,
+        message: "Disconnected from Figma"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to disconnect from Figma API"
+      });
+    }
+  });
+  
+  // Get a Figma file
+  app.get('/api/figma/file/:fileKey', async (req, res) => {
+    try {
+      const figmaToken = process.env.FIGMA_ACCESS_TOKEN;
+      const { fileKey } = req.params;
+      
+      if (!figmaToken) {
+        return res.status(401).json({
+          message: "No Figma access token found"
+        });
+      }
+      
+      // Call the Figma API to get the file data
+      const response = await fetch(`https://api.figma.com/v1/files/${fileKey}`, {
+        headers: {
+          'Authorization': `Bearer ${figmaToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({
+          message: `Figma API error: ${errorText || response.statusText}`
+        });
+      }
+      
+      const figmaData = await response.json();
+      res.json(figmaData);
+    } catch (error) {
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to fetch Figma file"
+      });
+    }
+  });
+  
+  // Get Figma image URLs for nodes
+  app.get('/api/figma/images/:fileKey', async (req, res) => {
+    try {
+      const figmaToken = process.env.FIGMA_ACCESS_TOKEN;
+      const { fileKey } = req.params;
+      const { ids, format } = req.query;
+      
+      if (!figmaToken) {
+        return res.status(401).json({
+          message: "No Figma access token found"
+        });
+      }
+      
+      if (!ids) {
+        return res.status(400).json({
+          message: "Missing required parameter: ids"
+        });
+      }
+      
+      // Call the Figma API to get image URLs
+      const response = await fetch(
+        `https://api.figma.com/v1/images/${fileKey}?ids=${ids}&format=${format || 'png'}`, {
+        headers: {
+          'Authorization': `Bearer ${figmaToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({
+          message: `Figma API error: ${errorText || response.statusText}`
+        });
+      }
+      
+      const imageData = await response.json();
+      res.json(imageData);
+    } catch (error) {
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to fetch Figma images"
+      });
+    }
+  });
+  
   // ============== PROJECT ROUTES ==============
   
   // Get all projects for a user

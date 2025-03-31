@@ -16,6 +16,9 @@ const Header = () => {
           <Link href="/reports">
             <a className="text-neutral-600 hover:text-primary">Reports</a>
           </Link>
+          <Link href="/figma-test">
+            <a className="text-neutral-600 hover:text-primary">Figma Test</a>
+          </Link>
           <Link href="/settings">
             <a className="text-neutral-600 hover:text-primary">Settings</a>
           </Link>

@@ -1,27 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "./use-toast";
+import { fetchFigmaFile as apiFetchFigmaFile } from "@/lib/figma-api";
 
 export function useFigmaIntegration() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const checkAccessToken = async () => {
+      try {
+        // This would check if there's an environment variable for the Figma token
+        const response = await fetch('/api/figma/check-token');
+        const data = await response.json();
+        
+        if (data.hasToken) {
+          setIsConnected(true);
+          setAccessToken(data.tokenHint || "****");
+        }
+      } catch (error) {
+        console.error("Error checking Figma token:", error);
+      }
+    };
+    
+    checkAccessToken();
+  }, []);
 
   const connectToFigma = async () => {
     try {
       setIsConnecting(true);
       
-      // In a real implementation, this would initiate OAuth flow to Figma
-      // For demo, we'll simulate a successful connection
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // In a real app with OAuth, we would handle the full flow
+      // For now, we'll use the environment variable token directly
+      const response = await fetch('/api/figma/connect');
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || "Failed to connect to Figma");
+      }
       
       setIsConnected(true);
+      setAccessToken(data.tokenHint || "****");
       setIsConnecting(false);
       return true;
     } catch (error) {
       setIsConnecting(false);
       toast({
         title: "Failed to connect to Figma",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
       return false;
@@ -30,16 +58,20 @@ export function useFigmaIntegration() {
 
   const disconnectFigma = async () => {
     try {
-      // In a real implementation, this would revoke Figma access token
-      // For demo, we'll simulate a successful disconnection
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/figma/disconnect');
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || "Failed to disconnect from Figma");
+      }
       
       setIsConnected(false);
+      setAccessToken(null);
       return true;
     } catch (error) {
       toast({
         title: "Failed to disconnect from Figma",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
       return false;
@@ -52,22 +84,22 @@ export function useFigmaIntegration() {
         throw new Error("Not connected to Figma. Please connect first.");
       }
       
-      // In a real implementation, this would fetch file data from Figma API
-      // For demo, we'll return mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Extract file key from URL
+      const match = fileUrl.match(/file\/([a-zA-Z0-9]+)/);
+      if (!match || !match[1]) {
+        throw new Error("Invalid Figma URL. Could not extract file key.");
+      }
       
-      return {
-        name: "Figma Design",
-        lastModified: new Date().toISOString(),
-        pages: [
-          { id: "page1", name: "Page 1" },
-          { id: "page2", name: "Page 2" },
-        ],
-      };
+      const fileKey = match[1];
+      
+      // Call our API function that will make the actual request to Figma's API
+      const fileData = await apiFetchFigmaFile(fileKey, "");
+      
+      return fileData;
     } catch (error) {
       toast({
         title: "Failed to fetch Figma file",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
       return null;
@@ -80,5 +112,6 @@ export function useFigmaIntegration() {
     fetchFigmaFile,
     isConnecting,
     isConnected,
+    accessToken
   };
 }

@@ -1,5 +1,5 @@
-// This module simulates Figma API integration functionality
-// In a real implementation, it would communicate with the Figma API
+// Figma API integration module
+// This interacts with the Figma API using environment variables for authentication
 
 interface FigmaNode {
   id: string;
@@ -22,58 +22,114 @@ interface FigmaFile {
 }
 
 /**
- * Fetch Figma file data
+ * Fetch Figma file data from the Figma API
  */
 export async function fetchFigmaFile(fileKey: string, accessToken: string): Promise<FigmaFile> {
-  // In a real implementation, this would make actual API calls to Figma
-  // For demo, we'll simulate a response based on the file key
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Mock file data
-  return {
-    name: "E-commerce Dashboard",
-    lastModified: new Date().toISOString(),
-    version: "1.0",
-    pages: [
-      {
-        id: "page1",
-        name: "Login & Authentication",
-        nodes: generateMockLoginNodes()
-      },
-      {
-        id: "page2",
-        name: "Product Listing",
-        nodes: generateMockProductListingNodes()
-      },
-      {
-        id: "page3",
-        name: "Checkout Flow",
-        nodes: generateMockCheckoutNodes()
-      }
-    ]
-  };
+  try {
+    // Make a server-side request to proxy the Figma API call
+    // This way we avoid exposing the access token in the client
+    const response = await fetch(`/api/figma/file/${fileKey}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch Figma file: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Transform the response into our expected format
+    return {
+      name: data.name,
+      lastModified: data.lastModified || new Date().toISOString(),
+      version: data.version || "1.0",
+      pages: transformFigmaPages(data)
+    };
+  } catch (error) {
+    console.error("Error fetching Figma file:", error);
+    
+    // If the API request fails, we'll return a placeholder with error info
+    // so the UI can display the appropriate error state
+    return {
+      name: "Error: Could not load Figma file",
+      lastModified: new Date().toISOString(),
+      version: "error",
+      pages: []
+    };
+  }
+}
+
+/**
+ * Transform Figma API response to our page structure
+ */
+function transformFigmaPages(figmaData: any): FigmaPage[] {
+  try {
+    // If we have real Figma data, extract the pages
+    if (figmaData.document && figmaData.document.children) {
+      return figmaData.document.children.map((page: any) => ({
+        id: page.id,
+        name: page.name,
+        nodes: extractNodes(page)
+      }));
+    }
+    
+    // Fallback to empty array if no pages are found
+    return [];
+  } catch (error) {
+    console.error("Error transforming Figma pages:", error);
+    return [];
+  }
+}
+
+/**
+ * Extract nodes from a Figma page
+ */
+function extractNodes(page: any): FigmaNode[] {
+  try {
+    if (!page || !page.children) {
+      return [];
+    }
+    
+    const processNode = (node: any): FigmaNode => {
+      return {
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        ...(node.children && { children: node.children.map(processNode) })
+      };
+    };
+    
+    return page.children.map(processNode);
+  } catch (error) {
+    console.error("Error extracting Figma nodes:", error);
+    return [];
+  }
 }
 
 /**
  * Fetch Figma image URLs for nodes
  */
 export async function fetchFigmaImages(fileKey: string, nodeIds: string[], accessToken: string): Promise<Record<string, string>> {
-  // In a real implementation, this would make actual API calls to Figma
-  // For demo, we'll simulate a response with fake image URLs
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Mock image URLs
-  const images: Record<string, string> = {};
-  
-  nodeIds.forEach(id => {
-    images[id] = `https://figma-mock-images.example.com/${fileKey}/${id}.png`;
-  });
-  
-  return images;
+  try {
+    // Make a server-side request to proxy the Figma API call for images
+    const queryParams = new URLSearchParams({
+      ids: nodeIds.join(','),
+      format: 'png'
+    });
+    
+    const response = await fetch(`/api/figma/images/${fileKey}?${queryParams}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Figma images: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Return the images object from the response
+    return data.images || {};
+  } catch (error) {
+    console.error("Error fetching Figma images:", error);
+    return {};
+  }
 }
 
 /**
