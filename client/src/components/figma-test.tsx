@@ -76,7 +76,7 @@ export function FigmaTest() {
               <div className="flex space-x-2">
                 <Input
                   id="figma-url"
-                  placeholder="https://www.figma.com/file/..."
+                  placeholder="https://www.figma.com/file/abc123/FileName"
                   value={figmaUrl}
                   onChange={(e) => setFigmaUrl(e.target.value)}
                 />
@@ -84,9 +84,17 @@ export function FigmaTest() {
                   {loading ? 'Loading...' : 'Fetch File'}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Enter a Figma file URL to fetch its data
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Enter a Figma file URL in one of these formats:
+                </p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">
+                  https://www.figma.com/file/FILE_ID/FILE_NAME
+                </p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">
+                  https://www.figma.com/design/FILE_ID/FILE_NAME
+                </p>
+              </div>
             </div>
           )}
         </CardContent>

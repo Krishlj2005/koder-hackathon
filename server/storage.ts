@@ -335,9 +335,21 @@ export class MemStorage implements IStorage {
 
 // Helper function to extract Figma file key from URL
 function extractFigmaKeyFromUrl(url: string): string | null {
-  const regex = /figma.com\/file\/([a-zA-Z0-9]+)/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
+  // Try the standard file URL format
+  const fileRegex = /figma\.com\/file\/([a-zA-Z0-9]+)/i;
+  const fileMatch = url.match(fileRegex);
+  if (fileMatch && fileMatch[1]) {
+    return fileMatch[1];
+  }
+  
+  // Try the design URL format
+  const designRegex = /figma\.com\/design\/([a-zA-Z0-9]+)/i;
+  const designMatch = url.match(designRegex);
+  if (designMatch && designMatch[1]) {
+    return designMatch[1];
+  }
+  
+  return null;
 }
 
 export const storage = new MemStorage();

@@ -63,7 +63,7 @@ const FigmaConnectionStep: React.FC<FigmaConnectionStepProps> = ({
     } catch (error) {
       toast({
         title: "Failed to connect",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -80,7 +80,7 @@ const FigmaConnectionStep: React.FC<FigmaConnectionStepProps> = ({
     } catch (error) {
       toast({
         title: "Failed to disconnect",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -97,10 +97,21 @@ const FigmaConnectionStep: React.FC<FigmaConnectionStepProps> = ({
     }
 
     try {
-      // Check if URL follows Figma pattern
-      const figmaRegex = /https:\/\/(www\.)?figma.com\/file\/([a-zA-Z0-9]+)\/.+/;
-      if (!figmaRegex.test(figmaUrl)) {
-        throw new Error("Invalid Figma URL format. Expected format: https://www.figma.com/file/FILEID/NAME");
+      // Extract file key from URL - supporting both file and design URLs
+      let fileKey;
+      
+      // First try the standard file URL format
+      const fileMatch = figmaUrl.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
+      if (fileMatch && fileMatch[1]) {
+        fileKey = fileMatch[1];
+      } else {
+        // Try the design URL format
+        const designMatch = figmaUrl.match(/figma\.com\/design\/([a-zA-Z0-9]+)/i);
+        if (designMatch && designMatch[1]) {
+          fileKey = designMatch[1];
+        } else {
+          throw new Error("Invalid Figma URL format. Expected format: https://www.figma.com/file/FILEID/NAME");
+        }
       }
 
       // Extract name from URL
@@ -115,7 +126,7 @@ const FigmaConnectionStep: React.FC<FigmaConnectionStepProps> = ({
     } catch (error) {
       toast({
         title: "Failed to load Figma file",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -197,7 +208,17 @@ const FigmaConnectionStep: React.FC<FigmaConnectionStepProps> = ({
             {addFigmaDesignMutation.isPending ? "Loading..." : "Load"}
           </Button>
         </div>
-        <p className="text-sm text-neutral-600 mt-2">Example: https://www.figma.com/file/abcdef123456/Project-Name</p>
+        <div className="mt-2 space-y-1">
+          <p className="text-sm text-neutral-600">
+            Enter a Figma URL in one of these formats:
+          </p>
+          <p className="text-xs font-mono bg-muted p-1 rounded">
+            https://www.figma.com/file/FILE_ID/FILE_NAME
+          </p>
+          <p className="text-xs font-mono bg-muted p-1 rounded">
+            https://www.figma.com/design/FILE_ID/FILE_NAME
+          </p>
+        </div>
       </div>
       
       {recentFigmaDesigns.length > 0 && (

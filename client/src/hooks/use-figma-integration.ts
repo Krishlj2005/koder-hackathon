@@ -84,13 +84,22 @@ export function useFigmaIntegration() {
         throw new Error("Not connected to Figma. Please connect first.");
       }
       
-      // Extract file key from URL
-      const match = fileUrl.match(/file\/([a-zA-Z0-9]+)/);
-      if (!match || !match[1]) {
-        throw new Error("Invalid Figma URL. Could not extract file key.");
-      }
+      // Extract file key from URL - supporting both file and design URLs
+      let fileKey;
       
-      const fileKey = match[1];
+      // First try the standard file URL format (https://www.figma.com/file/KEY/NAME)
+      const fileMatch = fileUrl.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
+      if (fileMatch && fileMatch[1]) {
+        fileKey = fileMatch[1];
+      } else {
+        // Try the design URL format (https://www.figma.com/design/KEY/NAME)
+        const designMatch = fileUrl.match(/figma\.com\/design\/([a-zA-Z0-9]+)/i);
+        if (designMatch && designMatch[1]) {
+          fileKey = designMatch[1];
+        } else {
+          throw new Error("Invalid Figma URL. Expected format: https://www.figma.com/file/FILEID/NAME");
+        }
+      }
       
       // Call our API function that will make the actual request to Figma's API
       const fileData = await apiFetchFigmaFile(fileKey, "");
